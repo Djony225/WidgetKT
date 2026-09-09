@@ -36,4 +36,4 @@ RUN chown -R www-data:www-data /var/www/storage /var/www/bootstrap/cache \
 
 EXPOSE 80
 
-CMD service nginx start && php-fpm
+CMD service nginx start && php-fpm -F -R --daemonize
