@@ -1,6 +1,6 @@
 FROM php:8.4-fpm
 
-# # Installer les dépendances système et extensions PHP requises
+# Installer les dépendances système (y compris libpq-dev pour PostgreSQL) et Nginx
 RUN apt-get update && apt-get install -y \
     git \
     curl \
@@ -8,27 +8,31 @@ RUN apt-get update && apt-get install -y \
     libonig-dev \
     libxml2-dev \
     libzip-dev \
+    libpq-dev \
     zip \
     unzip \
     nginx
 
-RUN docker-php-ext-install pdo_mysql mbstring exif pcntl bcmath gd zip
+# Installer les extensions PHP (pdo_mysql ET pdo_pgsql)
+RUN docker-php-ext-install pdo_mysql pdo_pgsql mbstring exif pcntl bcmath gd zip
 
-# # Installer Composer
+# Installer Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
-# # Copier le projet
+# Définir le dossier de travail
 WORKDIR /var/www
 COPY . .
 
-# # Installer les dépendances Laravel
+# Installer les dépendances composer
 RUN composer install --no-dev --optimize-autoloader
 
-# # Configurer Nginx
+# Configurer Nginx
 COPY .railway/nginx.conf /etc/nginx/sites-available/default
+RUN ln -sf /etc/nginx/sites-available/default /etc/nginx/sites-enabled/default
 
-# # Donner les permissions aux dossiers de stockage
-RUN chown -R www-data:www-data /var/www/storage /var/www/bootstrap/cache
+# Fixer les permissions pour storage et bootstrap/cache
+RUN chown -R www-data:www-data /var/www/storage /var/www/bootstrap/cache \
+    && chmod -R 775 /var/www/storage /var/www/bootstrap/cache
 
 EXPOSE 80
 
